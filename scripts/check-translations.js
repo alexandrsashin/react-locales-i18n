@@ -1,6 +1,6 @@
 import fs from "fs";
 import path from "path";
-import { fileURLToPath } from "url";
+import { fileURLToPath, pathToFileURL } from "url";
 import { globSync } from "glob";
 import i18nextScanner from "i18next-scanner";
 
@@ -47,7 +47,7 @@ async function findUnusedTranslations() {
 
   for (const file of translationFiles) {
     const filePath = path.join(localesDir, file);
-    const fileUrl = `file://${filePath}`;
+    const fileUrl = pathToFileURL(filePath).href;
 
     try {
       const module = await import(fileUrl);
