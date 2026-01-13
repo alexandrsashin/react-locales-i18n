@@ -48,6 +48,12 @@ export const getI18nConfig = (options?: {
         loadPath: "./locales/{{lng}}/{{ns}}.json",
       },
     };
+  }
+};
+
+export const initializeI18n = async (options?: {
+  defaultLanguage?: string;
+  fallbackLanguage?: string;
   detectLanguage?: boolean;
 }) => {
   if (i18n.isInitialized) {
@@ -63,13 +69,7 @@ export const getI18nConfig = (options?: {
       .use(LanguageDetector)
       .use(HttpBackend)
       .use(initReactI18next)
-      
-  const config = getI18nConfig(options);
-
-  if (isDevelopment) {
-    await i18n.use(initReactI18next).init(config);
-  } else {
-    await i18n.use(HttpBackend).use(initReactI18next).init(config);
+      .init(config);
   }
 
   return i18n;
