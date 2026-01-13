@@ -11,11 +11,9 @@ export function LocalesProvider({ children }: LocalesProviderProps) {
 
   useEffect(() => {
     if (!i18n.isInitialized) {
-      initializeI18n({ defaultLanguage: "en", fallbackLanguage: "en" }).then(
-        () => {
-          setIsInitialized(true);
-        }
-      );
+      initializeI18n().then(() => {
+        setIsInitialized(true);
+      });
     }
   }, []);
 

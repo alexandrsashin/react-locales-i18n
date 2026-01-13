@@ -1,6 +1,7 @@
 import i18n from "i18next";
 import { initReactI18next } from "react-i18next";
 import HttpBackend from "i18next-http-backend";
+import LanguageDetector from "i18next-browser-languagedetector";
 import { resources } from "./locales";
 
 const isDevelopment = import.meta.env.DEV;
@@ -8,14 +9,16 @@ const isDevelopment = import.meta.env.DEV;
 export const getI18nConfig = (options?: {
   defaultLanguage?: string;
   fallbackLanguage?: string;
+  detectLanguage?: boolean;
 }) => {
   const defaultLanguage = options?.defaultLanguage || "en";
   const fallbackLanguage = options?.fallbackLanguage || "en";
+  const detectLanguage = options?.detectLanguage ?? true;
   const namespaces = Object.keys(resources.en || {});
   const defaultNS = namespaces[0] || "common";
 
   const baseConfig = {
-    lng: defaultLanguage,
+    lng: detectLanguage ? undefined : defaultLanguage,
     fallbackLng: fallbackLanguage,
     defaultNS,
     ns: namespaces,
@@ -24,6 +27,10 @@ export const getI18nConfig = (options?: {
     },
     react: {
       useSuspense: false,
+    },
+    detection: {
+      order: ["navigator", "htmlTag"],
+      caches: [],
     },
   };
 
@@ -41,17 +48,22 @@ export const getI18nConfig = (options?: {
         loadPath: "./locales/{{lng}}/{{ns}}.json",
       },
     };
-  }
-};
-
-export const initializeI18n = async (options?: {
-  defaultLanguage?: string;
-  fallbackLanguage?: string;
+  detectLanguage?: boolean;
 }) => {
   if (i18n.isInitialized) {
     return i18n;
   }
 
+  const config = getI18nConfig(options);
+
+  if (isDevelopment) {
+    await i18n.use(LanguageDetector).use(initReactI18next).init(config);
+  } else {
+    await i18n
+      .use(LanguageDetector)
+      .use(HttpBackend)
+      .use(initReactI18next)
+      
   const config = getI18nConfig(options);
 
   if (isDevelopment) {
