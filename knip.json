@@ -1,0 +1,16 @@
+{
+  "$schema": "https://unpkg.com/knip@5/schema.json",
+  "entry": ["src/main.tsx"],
+  "project": ["src/**/*.{ts,tsx}"],
+  "ignore": [
+    "src/vite-env.d.ts",
+    "src/i18next.d.ts",
+    "src/locales/*.ts",
+    "vite-plugin-i18n.ts",
+    "dist/**",
+    "public/**"
+  ],
+  "ignoreExportsUsedInFile": true,
+  "eslint": true,
+  "vite": true
+}
