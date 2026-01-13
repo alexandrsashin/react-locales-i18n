@@ -5,21 +5,18 @@ import { resources } from "./locales";
 
 const isDevelopment = import.meta.env.DEV;
 
-// Get saved language or use default
-const LANGUAGE_KEY = "i18n_language";
-const savedLanguage = localStorage.getItem(LANGUAGE_KEY) || "en";
+export const getI18nConfig = (options?: {
+  defaultLanguage?: string;
+  fallbackLanguage?: string;
+}) => {
+  const defaultLanguage = options?.defaultLanguage || "en";
+  const fallbackLanguage = options?.fallbackLanguage || "en";
+  const namespaces = Object.keys(resources.en || {});
+  const defaultNS = namespaces[0] || "common";
 
-// Automatically get list of namespaces from resources
-const namespaces = Object.keys(resources.en || {});
-const defaultNS = namespaces[0] || "common";
-
-// Initialize i18next synchronously
-if (isDevelopment) {
-  // In development, use imported TS resources
-  i18n.use(initReactI18next).init({
-    resources,
-    lng: savedLanguage,
-    fallbackLng: "en",
+  const baseConfig = {
+    lng: defaultLanguage,
+    fallbackLng: fallbackLanguage,
     defaultNS,
     ns: namespaces,
     interpolation: {
@@ -28,33 +25,69 @@ if (isDevelopment) {
     react: {
       useSuspense: false,
     },
-  });
-} else {
-  // In production, load JSON files via HTTP backend
-  i18n
-    .use(HttpBackend)
-    .use(initReactI18next)
-    .init({
-      lng: savedLanguage,
-      fallbackLng: "en",
-      defaultNS,
-      ns: namespaces,
+  };
+
+  if (isDevelopment) {
+    // In development, use imported TS resources
+    return {
+      ...baseConfig,
+      resources,
+    };
+  } else {
+    // In production, load JSON files via HTTP backend
+    return {
+      ...baseConfig,
       backend: {
-        // Use relative path from the script location
         loadPath: "./locales/{{lng}}/{{ns}}.json",
       },
-      interpolation: {
-        escapeValue: false,
-      },
-      react: {
-        useSuspense: false,
-      },
-    });
-}
+    };
+  }
+};
 
-// Save language to localStorage on change
-i18n.on("languageChanged", (lng) => {
-  localStorage.setItem(LANGUAGE_KEY, lng);
-});
+export const initializeI18n = async (options?: {
+  defaultLanguage?: string;
+  fallbackLanguage?: string;
+}) => {
+  if (i18n.isInitialized) {
+    return i18n;
+  }
+
+  const config = getI18nConfig(options);
+
+  if (isDevelopment) {
+    await i18n.use(initReactI18next).init(config);
+  } else {
+    await i18n.use(HttpBackend).use(initReactI18next).init(config);
+  }
+
+  return i18n;
+};
+
+// Auto-initialize for non-provider usage
+initializeI18n();
+
+// HMR: reload resources when translation files change
+if (isDevelopment && import.meta.hot) {
+  import.meta.hot.accept("./locales", async (newModule) => {
+    if (newModule && i18n.isInitialized) {
+      const newResources = newModule.resources;
+
+      // Get current language
+      const currentLang = i18n.language;
+
+      // Add new resources for all languages
+      Object.keys(newResources).forEach((lng) => {
+        Object.keys(newResources[lng]).forEach((ns) => {
+          i18n.addResourceBundle(lng, ns, newResources[lng][ns], true, true);
+        });
+      });
+
+      // Trigger re-render by changing language (even to the same one)
+      await i18n.changeLanguage(currentLang);
+
+      console.log("🔄 Translations reloaded");
+    }
+  });
+}
 
 export default i18n;

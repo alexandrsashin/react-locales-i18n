@@ -57,14 +57,12 @@ public/
 - Uses direct TypeScript file imports from `src/locales/index.ts`
 - Initializes i18next synchronously with ready resources
 - Automatically detects all namespaces from imported resources
-- Saves selected language in `localStorage` with key `i18n_language`
 
 **Benefits:**
 
 - ✅ Hot Module Replacement (HMR) - changes appear instantly
 - ✅ TypeScript validation and autocomplete
 - ✅ No build or file generation required
-- ✅ Language persists across HMR reloads
 
 **Vite Plugin:** Not activated in development mode
 
@@ -84,7 +82,6 @@ public/
 - Uses `i18next-http-backend` to load JSON
 - Loads translations via relative path: `./locales/{{lng}}/{{ns}}.json`
 - Loads namespaces on-demand (lazy loading)
-- Uses saved language from `localStorage`
 
 **Benefits:**
 
@@ -196,7 +193,7 @@ export default {
 
 ### i18next Config
 
-- Development: Uses direct TS imports for HMR with localStorage persistence
+- Development: Uses direct TS imports for HMR
 - Production: Uses HTTP Backend with relative paths
 - Falls back to English if translation is missing
 - Supports multiple namespaces loaded on-demand
@@ -231,7 +228,7 @@ function MyComponent() {
     </Trans>
   );
 
-  // Change language (persists in localStorage)
+  // Change language
   i18n.changeLanguage("ru");
 }
 
