@@ -6,7 +6,7 @@ import "./App.css";
 
 function App() {
   const [count, setCount] = useState(0);
-  const { t, i18n } = useTranslation();
+  const { t, i18n } = useTranslation(["common", "users", "roles", "products"]);
 
   const toggleLanguage = () => {
     const newLang = i18n.language === "en" ? "ru" : "en";

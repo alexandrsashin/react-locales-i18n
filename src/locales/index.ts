@@ -1,42 +1,15 @@
-import type { TranslationValue } from "./types";
-
 // Automatically import all translation files (except index.ts)
-const modules = import.meta.glob<{
-  default: { namespace: string; [key: string]: TranslationValue };
-}>("./*.ts", { eager: true });
+const modules = import.meta.glob("./*.ts", { eager: true });
 
 // Collect all modules from imports
-const namespaces = Object.entries(modules)
+const namespaceModules = Object.entries(modules)
   .filter(([path]) => !path.includes("index.ts") && !path.includes("types.ts"))
-  .map(([, module]) => module.default);
-
-// Automatically detect available languages from the first file
-const firstModule = namespaces[0];
-const detectedLanguages = firstModule
-  ? (Object.keys(firstModule).filter((key) => key !== "namespace") as string[])
-  : [];
+  .map(([, module]: [string, any]) => module.default);
 
 // Form resources for all languages
-export const resources = Object.fromEntries(
-  detectedLanguages.map((lang) => [
-    lang,
-    Object.fromEntries(
-      namespaces.map((ns) => [ns.namespace, ns[lang as keyof typeof ns]])
-    ),
-  ])
-);
+const resources = {
+  en: Object.fromEntries(namespaceModules.map((ns) => [ns.namespace, ns.en])),
+  ru: Object.fromEntries(namespaceModules.map((ns) => [ns.namespace, ns.ru])),
+};
 
-export const availableLanguages = detectedLanguages;
-export type AvailableLanguage = (typeof availableLanguages)[number];
-
-// Export modules for typing (optional)
-export const namespaceModules = Object.fromEntries(
-  Object.entries(modules)
-    .filter(
-      ([path]) => !path.includes("index.ts") && !path.includes("types.ts")
-    )
-    .map(([path, module]) => {
-      const name = path.replace("./", "").replace(".ts", "");
-      return [name, module.default];
-    })
-);
+export { resources };

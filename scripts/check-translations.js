@@ -44,6 +44,8 @@ async function findUnusedTranslations() {
 
   // Collect all keys from all namespaces
   const allTranslationKeys = new Map(); // namespace:key -> count
+  const translationsByLanguage = new Map(); // lang -> Set(namespace:key)
+  const missingTranslations = []; // Array of {namespace, key, missingIn: [langs]}
 
   for (const file of translationFiles) {
     const filePath = path.join(localesDir, file);
@@ -57,20 +59,57 @@ async function findUnusedTranslations() {
 
       const namespace = data.namespace;
 
-      // Extract keys from first language (assuming same structure)
+      // Extract keys from all languages
       const languages = Object.keys(data).filter((key) => key !== "namespace");
       if (languages.length === 0) continue;
 
-      const firstLang = languages[0];
-      const keys = extractKeys(data[firstLang]);
+      // Collect keys from each language
+      const keysByLanguage = new Map();
+      for (const lang of languages) {
+        const keys = extractKeys(data[lang]);
+        keysByLanguage.set(lang, new Set(keys));
 
-      // Add with namespace prefix
-      for (const key of keys) {
-        const fullKey = `${namespace}:${key}`;
-        allTranslationKeys.set(fullKey, 0);
+        // Initialize language set if needed
+        if (!translationsByLanguage.has(lang)) {
+          translationsByLanguage.set(lang, new Set());
+        }
+
+        // Add to global tracking
+        for (const key of keys) {
+          const fullKey = `${namespace}:${key}`;
+          allTranslationKeys.set(fullKey, 0);
+          translationsByLanguage.get(lang).add(fullKey);
+        }
       }
 
-      console.log(`✓ Loaded ${keys.length} keys from ${namespace}`);
+      // Find missing translations across languages
+      const allKeys = new Set();
+      for (const keys of keysByLanguage.values()) {
+        for (const key of keys) {
+          allKeys.add(key);
+        }
+      }
+
+      for (const key of allKeys) {
+        const missingIn = [];
+        for (const lang of languages) {
+          if (!keysByLanguage.get(lang).has(key)) {
+            missingIn.push(lang);
+          }
+        }
+        if (missingIn.length > 0) {
+          missingTranslations.push({
+            namespace,
+            key,
+            missingIn,
+          });
+        }
+      }
+
+      const totalKeys = allKeys.size;
+      console.log(
+        `✓ Loaded ${totalKeys} keys from ${namespace} (${languages.join(", ")})`
+      );
     } catch (error) {
       console.error(`❌ Error loading ${file}:`, error.message);
     }
@@ -175,6 +214,29 @@ async function findUnusedTranslations() {
 
   // Output results
   console.log("📈 Analysis results:\n");
+
+  // Report missing translations
+  if (missingTranslations.length > 0) {
+    console.log(`⚠️  Missing translations: ${missingTranslations.length}\n`);
+
+    // Group by namespace
+    const byNamespace = {};
+    for (const { namespace, key, missingIn } of missingTranslations) {
+      if (!byNamespace[namespace]) {
+        byNamespace[namespace] = [];
+      }
+      byNamespace[namespace].push({ key, missingIn });
+    }
+
+    for (const [namespace, items] of Object.entries(byNamespace)) {
+      console.log(`  📦 ${namespace}:`);
+      items.forEach(({ key, missingIn }) => {
+        console.log(`     • ${key} - missing in: ${missingIn.join(", ")}`);
+      });
+      console.log();
+    }
+  }
+
   console.log(`✅ Used: ${usedKeys.length} keys`);
   console.log(`❌ Unused: ${unusedKeys.length} keys`);
 
@@ -204,8 +266,13 @@ async function findUnusedTranslations() {
     }
 
     process.exit(1);
+  } else if (missingTranslations.length > 0) {
+    console.log("⚠️  Some translations are missing in certain languages!");
+    process.exit(1);
   } else {
-    console.log("🎉 All translation keys are used!");
+    console.log(
+      "🎉 All translation keys are used and present in all languages!"
+    );
   }
 }
 
