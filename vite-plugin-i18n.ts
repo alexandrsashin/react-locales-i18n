@@ -8,6 +8,11 @@ export function i18nPlugin(): Plugin {
     name: "vite-plugin-i18n-translations",
 
     buildStart() {
+      // Only generate JSON files in production build
+      if (process.env.NODE_ENV !== "production") {
+        return;
+      }
+
       const localesDir = path.resolve(process.cwd(), "src/locales");
       const publicDir = path.resolve(process.cwd(), "public/locales");
 
